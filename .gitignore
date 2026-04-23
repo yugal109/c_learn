@@ -1,0 +1,34 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# VS Code
+.vscode/
+
+# C/C++ build outputs
+build/
+*.o
+*.obj
+*.so
+*.a
+*.dylib
+*.dll
+*.exe
+*.out
+
+# Debug symbols / profiling
+*.dSYM/
+*.gcda
+*.gcno
+*.profraw
+*.profdata
+
+# Logs and temp files
+*.log
+cgrep/logs.txt
+*.tmp
+*.swp
+*.swo
+
+
