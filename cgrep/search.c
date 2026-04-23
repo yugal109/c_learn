@@ -8,6 +8,7 @@ void search_in_file(const char *filename, const char *pattern, int show_lines)
     if (file == NULL)
     {
         fprintf(stderr, "cgrep: %s: No such file or directory\n", filename);
+        return;
     }
 
     char line[1024];
