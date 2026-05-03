@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="920" viewBox="0 0 1400 920">
+  <defs>
+    <style>
+      .title { font: 700 34px Arial, sans-serif; fill: #0f172a; }
+      .subtitle { font: 500 18px Arial, sans-serif; fill: #334155; }
+      .box-title { font: 700 18px Arial, sans-serif; fill: #0f172a; }
+      .box-text { font: 500 14px Arial, sans-serif; fill: #1e293b; }
+      .small-text { font: 500 13px Arial, sans-serif; fill: #334155; }
+      .arrow-label { font: 700 13px Arial, sans-serif; fill: #0f172a; }
+      .file-label { font: 600 13px Arial, sans-serif; fill: #1d4ed8; }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#0f172a" />
+    </marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#94a3b8" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <rect x="0" y="0" width="1400" height="920" fill="#f8fafc"/>
+
+  <text x="60" y="64" class="title">yugshell Runtime Block Diagram</text>
+  <text x="60" y="94" class="subtitle">Source-grounded flow: prompt -&gt; read -&gt; parse -&gt; execute (builtin or fork/exec)</text>
+
+  <!-- main loop box -->
+  <rect x="70" y="150" rx="14" ry="14" width="430" height="170" fill="#dbeafe" stroke="#1d4ed8" stroke-width="2.2" filter="url(#shadow)"/>
+  <text x="95" y="185" class="box-title">1) Interactive Loop</text>
+  <text x="95" y="214" class="box-text">Print prompt: "yugshell&gt;: "</text>
+  <text x="95" y="238" class="box-text">Calls: read_line() -&gt; parse_line() -&gt; execute()</text>
+  <text x="95" y="262" class="box-text">Frees: line and args each iteration</text>
+  <text x="95" y="286" class="box-text">Continues while status != 0</text>
+  <text x="95" y="307" class="file-label">main.c (loop, main)</text>
+
+  <!-- read line -->
+  <rect x="560" y="150" rx="14" ry="14" width="360" height="150" fill="#dcfce7" stroke="#15803d" stroke-width="2.2" filter="url(#shadow)"/>
+  <text x="585" y="185" class="box-title">2) Read Input Line</text>
+  <text x="585" y="214" class="box-text">Character-by-character via getchar()</text>
+  <text x="585" y="238" class="box-text">Dynamic buffer growth (malloc/realloc)</text>
+  <text x="585" y="262" class="box-text">Stops at newline/EOF, null-terminates</text>
+  <text x="585" y="284" class="file-label">input.c - read_line()</text>
+
+  <!-- parse line -->
+  <rect x="980" y="150" rx="14" ry="14" width="350" height="150" fill="#fef3c7" stroke="#b45309" stroke-width="2.2" filter="url(#shadow)"/>
+  <text x="1005" y="185" class="box-title">3) Parse Tokens</text>
+  <text x="1005" y="214" class="box-text">strtok delimiters: space/tab/newline</text>
+  <text x="1005" y="238" class="box-text">Builds NULL-terminated char** args</text>
+  <text x="1005" y="262" class="box-text">Token array grows with realloc</text>
+  <text x="1005" y="284" class="file-label">parser.c - parse_line()</text>
+
+  <!-- execute -->
+  <rect x="520" y="390" rx="14" ry="14" width="400" height="140" fill="#e0e7ff" stroke="#4338ca" stroke-width="2.2" filter="url(#shadow)"/>
+  <text x="545" y="425" class="box-title">4) Execute Command</text>
+  <text x="545" y="451" class="box-text">If args[0] == NULL: return 1 (continue)</text>
+  <text x="545" y="475" class="box-text">If builtin: run in shell process</text>
+  <text x="545" y="499" class="box-text">Else: fork child and execvp()</text>
+  <text x="545" y="522" class="file-label">executor.c - execute()</text>
+
+  <!-- decision -->
+  <polygon points="1090,390 1240,460 1090,530 940,460" fill="#fee2e2" stroke="#b91c1c" stroke-width="2.2" filter="url(#shadow)"/>
+  <text x="1032" y="458" class="box-title">Built-in?</text>
+  <text x="1012" y="481" class="small-text">is_builtin(args)</text>
+
+  <!-- builtin branch -->
+  <rect x="880" y="610" rx="14" ry="14" width="420" height="190" fill="#ede9fe" stroke="#6d28d9" stroke-width="2.2" filter="url(#shadow)"/>
+  <text x="905" y="645" class="box-title">5A) Built-in Dispatcher (Parent Process)</text>
+  <text x="905" y="674" class="box-text">run_builtin(): cd | help | exit</text>
+  <text x="905" y="698" class="box-text">cd - chdir(args[1])</text>
+  <text x="905" y="722" class="box-text">help - print built-in usage</text>
+  <text x="905" y="746" class="box-text">exit - return 0 (break loop)</text>
+  <text x="905" y="770" class="box-text">Other built-ins return 1 (continue)</text>
+  <text x="905" y="792" class="file-label">builtins.c - is_builtin(), run_builtin(), builtin_*</text>
+
+  <!-- external branch -->
+  <rect x="120" y="610" rx="14" ry="14" width="640" height="210" fill="#cffafe" stroke="#0e7490" stroke-width="2.2" filter="url(#shadow)"/>
+  <text x="145" y="645" class="box-title">5B) External Command Path</text>
+  <text x="145" y="674" class="box-text">fork()</text>
+  <text x="145" y="698" class="box-text">Child: execvp(args[0], args)</text>
+  <text x="145" y="722" class="box-text">  - On failure: perror("yugshell"), exit(1)</text>
+  <text x="145" y="746" class="box-text">Parent: waitpid(pid, &amp;status, 0)</text>
+  <text x="145" y="770" class="box-text">execute() returns 1 after child completion</text>
+  <text x="145" y="792" class="file-label">executor.c - fork/execvp/waitpid flow</text>
+
+  <!-- arrows top flow -->
+  <line x1="500" y1="225" x2="560" y2="225" stroke="#0f172a" stroke-width="2.4" marker-end="url(#arrow)"/>
+  <text x="514" y="212" class="arrow-label">line*</text>
+
+  <line x1="920" y1="225" x2="980" y2="225" stroke="#0f172a" stroke-width="2.4" marker-end="url(#arrow)"/>
+  <text x="935" y="212" class="arrow-label">char** args</text>
+
+  <path d="M 1155 300 L 1155 360 L 820 360 L 820 390" fill="none" stroke="#0f172a" stroke-width="2.4" marker-end="url(#arrow)"/>
+  <text x="1038" y="348" class="arrow-label">pass args</text>
+
+  <!-- decision arrows -->
+  <line x1="920" y1="460" x2="940" y2="460" stroke="#0f172a" stroke-width="2.4" marker-end="url(#arrow)"/>
+  <path d="M 1090 530 L 1090 610" fill="none" stroke="#0f172a" stroke-width="2.4" marker-end="url(#arrow)"/>
+  <text x="1110" y="575" class="arrow-label">YES</text>
+
+  <path d="M 940 460 L 790 460 L 790 715 L 760 715" fill="none" stroke="#0f172a" stroke-width="2.4" marker-end="url(#arrow)"/>
+  <text x="810" y="448" class="arrow-label">NO</text>
+
+  <!-- status return arrows -->
+  <path d="M 1090 800 L 1090 850 L 300 850 L 300 320" fill="none" stroke="#0f172a" stroke-width="2.4" marker-end="url(#arrow)"/>
+  <text x="960" y="842" class="arrow-label">status (0 or 1) back to loop</text>
+
+  <path d="M 440 820 L 440 835 L 270 835 L 270 320" fill="none" stroke="#0f172a" stroke-width="2.4" marker-end="url(#arrow)"/>
+  <text x="168" y="828" class="arrow-label">status = 1 back to loop</text>
+
+  <!-- legend -->
+  <rect x="70" y="340" rx="10" ry="10" width="430" height="185" fill="#ffffff" stroke="#94a3b8" stroke-width="1.8"/>
+  <text x="92" y="372" class="box-title">Legend / Key Notes</text>
+  <text x="92" y="399" class="small-text">- Built-ins run in parent shell process (required for cd)</text>
+  <text x="92" y="423" class="small-text">- External commands run in child process via execvp</text>
+  <text x="92" y="447" class="small-text">- Parser tokens point into input line buffer</text>
+  <text x="92" y="471" class="small-text">- Loop terminates only when builtin exit returns 0</text>
+  <text x="92" y="495" class="small-text">- Diagram mirrors current code behavior, not future features</text>
+</svg>
