@@ -10,7 +10,7 @@ CFLAGS = -Wall -Wextra -pedantic -g -fsanitize=address
 
 TARGET = yugshell
 BUILD_DIR = build
-SRCS = main.c input.c parser.c builtins.c executor.c
+SRCS = main.c input.c parser.c builtins.c executor.c history.c
 OBJS = $(patsubst %.c, $(BUILD_DIR)/%.o, $(SRCS))
 
 all: $(BUILD_DIR) $(BUILD_DIR)/$(TARGET)

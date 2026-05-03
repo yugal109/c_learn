@@ -1,4 +1,5 @@
 #include "executor.h"
+#include "history.h"
 #include "input.h"
 #include "parser.h"
 #include <stdio.h>
@@ -20,6 +21,8 @@ void loop(void) {
       free(line);
       break;
     }
+
+    history_add(line);
 
     pipeline = parse_pipeline(line);
 

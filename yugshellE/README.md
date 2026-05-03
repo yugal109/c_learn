@@ -5,6 +5,7 @@ Extended `yugshell` with support for:
 - input redirection (`<`)
 - output redirection (`>`, `>>`)
 - single pipeline (`cmd1 | cmd2`)
+- in-memory command history (up to 100 lines) and a `history` built-in
 
 This documentation is based on the current `yugshellE` source.
 
@@ -15,11 +16,12 @@ This documentation is based on the current `yugshellE` source.
 1. print prompt `yugshell>: `
 2. read line from stdin via `read_line()`
 3. break if line is empty / EOF-style path
-4. parse with `parse_pipeline(line)`
-5. if pipeline -> `execute_pipeline()`
-6. else -> `execute(left_command)`
-7. free line + pipeline structures
-8. continue while status is non-zero
+4. call `history_add(line)` so non-empty lines are recorded (see `history.c`)
+5. parse with `parse_pipeline(line)`
+6. if pipeline -> `execute_pipeline()`
+7. else -> `execute(left_command)`
+8. free line + pipeline structures
+9. continue while status is non-zero
 
 ## Block diagram (what you built, at a glance)
 
@@ -31,7 +33,8 @@ flowchart TD
         A[Print prompt] --> B["read_line() — input.c"]
         B --> C{Empty line?}
         C -->|yes| STOP[Leave loop]
-        C -->|no| D["parse_pipeline() — parser.c"]
+        C -->|no| HIST["history_add(line) — history.c"]
+        HIST --> D["parse_pipeline() — parser.c"]
         D --> E{Line had a | pipe?}
         E -->|no| F["execute(left Command) — executor.c"]
         E -->|yes| G["execute_pipeline() — executor.c"]
@@ -49,7 +52,7 @@ flowchart TD
 
     subgraph RUN1["Single command — executor.c"]
         F --> R1{Builtin? builtins.c}
-        R1 -->|cd / help / exit| R2[Run in shell process]
+        R1 -->|cd / help / exit / history| R2[Run in shell process]
         R1 -->|external| R3[fork → child: setup_redirection → execvp]
         R3 --> R4[Parent waitpid]
     end
@@ -77,7 +80,8 @@ flowchart TD
 - **input.c**: one line of text into a growable buffer.
 - **parser.c**: turns that line into `Command` structs (args + optional redirect paths); if there is `|`, you get **two** commands.
 - **executor.c**: either one process path (`execute`) or pipe + two children (`execute_pipeline`); **redirection** is always **open + dup2** right before **execvp** in the child.
-- **builtins.c**: only on the **non-pipeline** path via `execute`; `exit` is what returns **0** and stops the loop.
+- **builtins.c**: only on the **non-pipeline** path via `execute`; `exit` is what returns **0** and stops the loop; `history` calls `history_print()`.
+- **history.c**: ring of up to `MAX_HISTORY` (100) `strdup`’d lines; `history_add` skips empty strings; `history` built-in prints numbered entries.
 
 For a separate visual asset, see `yugshellE_block_diagram.svg` in this folder.
 
@@ -104,7 +108,7 @@ For a separate visual asset, see `yugshellE_block_diagram.svg` in this folder.
 
 - `executor.c` / `executor.h`
   - `execute(Command *cmd)`:
-    - built-in dispatch for `cd/help/exit`
+    - built-in dispatch for `cd/help/exit/history`
     - external command with `fork + execvp`
     - applies redirection before `execvp`
   - `execute_pipeline(Pipeline *pipeline)`:
@@ -113,9 +117,14 @@ For a separate visual asset, see `yugshellE_block_diagram.svg` in this folder.
     - forks right child (stdin <- pipe read)
     - waits for both children
 
+- `history.c` / `history.h`
+  - `history_add(const char *line)` — append to session list (no-op for empty line; oldest dropped when full)
+  - `history_print(void)` — print `1 .. N` numbered lines
+
 - `builtins.c` / `builtins.h`
-  - `cd`, `help`, `exit`
+  - `cd`, `help`, `exit`, `history`
   - `exit` returns `0` to stop loop
+  - `history` prints the buffer maintained by `history_add` from `main.c`
 
 ## Redirection behavior
 
@@ -154,6 +163,10 @@ Clean:
 make clean
 ```
 
+## Command history
+
+After each non-empty line you enter, the shell stores a copy (up to 100 entries; older lines roll off). Type `history` to print a numbered list. This is in-memory only for the current process.
+
 ## Notes for revision
 
 - tokenization is whitespace-based (`strtok`), no quote support
@@ -161,6 +174,7 @@ make clean
 - parser token pointers reference the input line buffer
 - built-ins are in non-pipeline execute path
 - loop can end via builtin `exit` (status `0`) or empty-line break in `main.c`
+- history is process-local only (not persisted to disk; cleared when the shell exits)
 
 ## Diagram (SVG)
 
