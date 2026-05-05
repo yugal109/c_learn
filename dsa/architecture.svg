@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900">
+  <defs>
+    <style>
+      .title { font: 700 34px Arial, sans-serif; fill: #0f172a; }
+      .subtitle { font: 500 18px Arial, sans-serif; fill: #334155; }
+      .label { font: 600 16px Arial, sans-serif; fill: #0f172a; }
+      .text { font: 500 14px Arial, sans-serif; fill: #1e293b; }
+      .small { font: 500 13px Arial, sans-serif; fill: #334155; }
+      .coreText { font: 700 18px Arial, sans-serif; fill: #ffffff; }
+      .coreSub { font: 500 13px Arial, sans-serif; fill: #e2e8f0; }
+      .box { fill: #f8fafc; stroke: #334155; stroke-width: 2; rx: 12; ry: 12; }
+      .boxAlt { fill: #eef2ff; stroke: #4f46e5; stroke-width: 2; rx: 12; ry: 12; }
+      .core { fill: #0f766e; stroke: #0b4f4a; stroke-width: 3; rx: 14; ry: 14; }
+      .arrow { stroke: #334155; stroke-width: 2.5; fill: none; marker-end: url(#arrowhead); }
+      .arrowCore { stroke: #0f766e; stroke-width: 3; fill: none; marker-end: url(#arrowheadCore); }
+      .lane { fill: none; stroke: #cbd5e1; stroke-width: 1.5; stroke-dasharray: 8 7; rx: 14; ry: 14; }
+    </style>
+    <marker id="arrowhead" markerWidth="11" markerHeight="8" refX="10" refY="4" orient="auto">
+      <polygon points="0,0 11,4 0,8" fill="#334155"/>
+    </marker>
+    <marker id="arrowheadCore" markerWidth="11" markerHeight="8" refX="10" refY="4" orient="auto">
+      <polygon points="0,0 11,4 0,8" fill="#0f766e"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1400" height="900" fill="#ffffff"/>
+
+  <text x="700" y="52" text-anchor="middle" class="title">DSA Project Flow / Block Diagram</text>
+  <text x="700" y="82" text-anchor="middle" class="subtitle">Static Library-Centric Architecture</text>
+
+  <rect x="60" y="120" width="1280" height="210" class="lane"/>
+  <text x="78" y="145" class="label">Input Layer (Code + Build Config)</text>
+
+  <rect x="90" y="170" width="260" height="135" class="box"/>
+  <text x="220" y="198" text-anchor="middle" class="label">Public API Headers</text>
+  <text x="220" y="223" text-anchor="middle" class="text">include/array.h</text>
+  <text x="220" y="246" text-anchor="middle" class="text">include/list.h</text>
+  <text x="220" y="269" text-anchor="middle" class="text">include/hashmap.h</text>
+
+  <rect x="390" y="170" width="260" height="135" class="box"/>
+  <text x="520" y="198" text-anchor="middle" class="label">Implementations</text>
+  <text x="520" y="223" text-anchor="middle" class="text">src/array.c</text>
+  <text x="520" y="246" text-anchor="middle" class="text">src/list.c</text>
+  <text x="520" y="269" text-anchor="middle" class="text">src/hashmap.c</text>
+
+  <rect x="690" y="170" width="260" height="135" class="box"/>
+  <text x="820" y="198" text-anchor="middle" class="label">Build Rules</text>
+  <text x="820" y="223" text-anchor="middle" class="text">Makefile</text>
+  <text x="820" y="246" text-anchor="middle" class="small">Compiles objects from src/*.c</text>
+  <text x="820" y="269" text-anchor="middle" class="small">Archives library via ar rcs</text>
+
+  <rect x="990" y="170" width="320" height="135" class="boxAlt"/>
+  <text x="1150" y="198" text-anchor="middle" class="label">Test / Consumer Source</text>
+  <text x="1150" y="223" text-anchor="middle" class="text">tests/main.c</text>
+  <text x="1150" y="246" text-anchor="middle" class="small">Uses APIs from include/*.h</text>
+  <text x="1150" y="269" text-anchor="middle" class="small">Linked against static archive</text>
+
+  <rect x="60" y="360" width="1280" height="220" class="lane"/>
+  <text x="78" y="385" class="label">Core Build Artifact (Center of System)</text>
+
+  <rect x="490" y="430" width="420" height="120" class="core"/>
+  <text x="700" y="476" text-anchor="middle" class="coreText">build/libdsa.a</text>
+  <text x="700" y="502" text-anchor="middle" class="coreSub">STATIC LIBRARY CORE</text>
+  <text x="700" y="525" text-anchor="middle" class="coreSub">Array + List + Hashmap packed for reuse</text>
+
+  <rect x="60" y="610" width="1280" height="230" class="lane"/>
+  <text x="78" y="635" class="label">Output / Execution Layer</text>
+
+  <rect x="180" y="675" width="330" height="125" class="box"/>
+  <text x="345" y="705" text-anchor="middle" class="label">Linked Test Binary</text>
+  <text x="345" y="730" text-anchor="middle" class="text">build/test</text>
+  <text x="345" y="755" text-anchor="middle" class="small">Produced by: make test</text>
+  <text x="345" y="778" text-anchor="middle" class="small">CC tests/main.c + libdsa.a</text>
+
+  <rect x="540" y="675" width="330" height="125" class="box"/>
+  <text x="705" y="705" text-anchor="middle" class="label">Runtime Validation</text>
+  <text x="705" y="730" text-anchor="middle" class="text">Array/List/Hashmap operations</text>
+  <text x="705" y="755" text-anchor="middle" class="small">Insert, read, update, remove</text>
+  <text x="705" y="778" text-anchor="middle" class="small">Resize and bounds behavior</text>
+
+  <rect x="900" y="675" width="350" height="125" class="boxAlt"/>
+  <text x="1075" y="705" text-anchor="middle" class="label">Future External Programs</text>
+  <text x="1075" y="730" text-anchor="middle" class="text">Any C app can link libdsa.a</text>
+  <text x="1075" y="755" text-anchor="middle" class="small">Stable API via include/*.h</text>
+  <text x="1075" y="778" text-anchor="middle" class="small">Reusable modular distribution</text>
+
+  <path d="M520 305 L520 430" class="arrow"/>
+  <path d="M820 305 L820 430" class="arrow"/>
+  <path d="M1150 305 L900 455" class="arrow"/>
+  <path d="M350 735 L490 510" class="arrowCore"/>
+  <path d="M700 675 L700 550" class="arrowCore"/>
+  <path d="M1075 675 L910 530" class="arrowCore"/>
+
+  <text x="470" y="355" class="small">Object files: build/array.o, build/list.o, build/hashmap.o</text>
+  <text x="458" y="844" class="subtitle">Core principle: everything compiles into and depends on the static library.</text>
+</svg>
