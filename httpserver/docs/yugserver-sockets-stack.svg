@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1900 1540" width="1900" height="1540" role="img" aria-labelledby="svgTitle svgDesc">
+  <title id="svgTitle">yugserver: browser, kernel TCP queues, server_fd, client_fd, HTTP and file FDs</title>
+  <desc id="svgDesc">Poster diagram of TCP handshake, listen backlog, listening and connected sockets, recv and send paths, and static file serving with a separate file descriptor.</desc>
+  <defs>
+    <marker id="arrowEnd" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#1e293b"/>
+    </marker>
+    <marker id="arrowStart" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M9,0 L9,6 L0,3 z" fill="#1e293b"/>
+    </marker>
+    <style type="text/css"><![CDATA[
+      .lane { fill: #f1f5f9; stroke: #94a3b8; stroke-width: 1.2; }
+      .card { fill: #ffffff; stroke: #334155; stroke-width: 1.5; }
+      .cardK { fill: #fefce8; stroke: #ca8a04; stroke-width: 1.5; }
+      .cardB { fill: #eff6ff; stroke: #2563eb; stroke-width: 1.5; }
+      .h1 { font-size: 22px; font-weight: 700; fill: #0f172a; }
+      .h2 { font-size: 15px; font-weight: 700; fill: #0f172a; }
+      .t { font-size: 12px; fill: #1e293b; }
+      .t10 { font-size: 10.5px; fill: #334155; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; fill: #0f172a; }
+      .muted { fill: #64748b; font-size: 10.5px; }
+      .step { fill: #0f172a; font-size: 11px; font-weight: 700; }
+      .line { stroke: #334155; stroke-width: 1.4; fill: none; marker-end: url(#arrowEnd); }
+      .line2 { stroke: #334155; stroke-width: 1.2; fill: none; marker-end: url(#arrowEnd); marker-start: url(#arrowStart); }
+      .dash { stroke: #64748b; stroke-width: 1.2; stroke-dasharray: 6 4; fill: none; marker-end: url(#arrowEnd); }
+    ]]></style>
+  </defs>
+
+  <text x="50" y="42" class="h1">yugserver - sockets, FDs, TCP queues, HTTP + disk</text>
+  <text x="50" y="64" class="muted">Maps to src/server.c, request.c, response.c, include/server.h - one blocking request per connection</text>
+
+  <rect x="40" y="85" class="lane" width="560" height="330" rx="8"/>
+  <rect x="615" y="85" class="lane" width="620" height="330" rx="8"/>
+  <rect x="1250" y="85" class="lane" width="610" height="330" rx="8"/>
+  <rect x="40" y="430" class="lane" width="1820" height="520" rx="8"/>
+  <rect x="40" y="970" class="lane" width="1820" height="380" rx="8"/>
+
+  <text x="55" y="108" class="h2">A. Browser / client process</text>
+  <text x="630" y="108" class="h2">B. Kernel / TCP</text>
+  <text x="1265" y="108" class="h2">C. yugserver - listening socket startup</text>
+  <text x="55" y="455" class="h2">D. Per-connection path (while(1)) - client_fd + app</text>
+  <text x="55" y="995" class="h2">E. HTTP + filesystem - file FD vs client_fd</text>
+
+  <g id="lifecycle-badges">
+    <circle cx="1780" cy="118" r="14" fill="#e2e8f0" stroke="#475569"/>
+    <text x="1774" y="122" class="step">1</text>
+    <text x="1605" y="155" class="t10">1-4 server_fd setup, 5-6 TCP, 7+ request</text>
+  </g>
+
+  <rect x="55" y="125" class="cardB" width="530" height="275" rx="6"/>
+  <text x="70" y="150" class="h2">Peer process (browser, curl, ...)</text>
+  <text x="70" y="172" class="mono">int browser_sockfd;  /* connected TCP socket in the client OS */</text>
+  <text x="70" y="192" class="t">connect() to server 127.0.0.1:8080 (or any iface; server uses INADDR_ANY)</text>
+  <text x="70" y="210" class="t">Local ephemeral port chosen by client OS; remote is :8080</text>
+  <text x="70" y="235" class="t">Sends HTTP bytes (e.g. GET / HTTP/1.1 ...) on browser_sockfd</text>
+  <text x="70" y="255" class="t">Receives HTTP response bytes on the same FD</text>
+  <line x1="70" y1="275" x2="570" y2="275" stroke="#cbd5e1"/>
+  <text x="70" y="295" class="muted">browser_sockfd is the peer of yugserver client_fd after accept()</text>
+
+  <rect x="630" y="125" class="cardK" width="590" height="120" rx="6"/>
+  <text x="645" y="148" class="h2">3-way handshake (simplified)</text>
+  <text x="645" y="170" class="mono">SYN --&gt; SYN-ACK --&gt; ACK</text>
+  <text x="645" y="190" class="t10">Server side ends in LISTEN on :8080; then connection becomes ESTABLISHED in kernel.</text>
+  <text x="645" y="208" class="t10">States: LISTEN, SYN_RCVD, ESTABLISHED (labels vary by phase)</text>
+
+  <rect x="630" y="255" class="card" width="285" height="135" rx="6"/>
+  <text x="642" y="278" class="h2">SYN / incomplete queue</text>
+  <text x="642" y="298" class="t10">Half-open / not yet fully established;</text>
+  <text x="642" y="314" class="t10">often called SYN queue. Limits are</text>
+  <text x="642" y="330" class="t10">OS-tuned (sysctl, syncookies, etc.).</text>
+
+  <rect x="930" y="255" class="card" width="275" height="135" rx="6"/>
+  <text x="942" y="278" class="h2">Accept queue</text>
+  <text x="942" y="298" class="mono">ESTABLISHED, waiting for accept()</text>
+  <text x="942" y="318" class="t10">Bounded by listen() backlog.</text>
+  <text x="942" y="336" class="mono">listen(server_fd, 10) means backlog = 10</text>
+  <text x="942" y="354" class="muted">If full: new handshakes may stall or be dropped per OS.</text>
+
+  <rect x="1265" y="125" class="card" width="575" height="275" rx="6"/>
+  <text x="1280" y="150" class="mono">int server_fd;  /* listening socket - stays open for whole process */</text>
+  <text x="1280" y="172" class="t"><tspan class="step">1</tspan>  socket(AF_INET, SOCK_STREAM, 0)  - if == -1: perror, exit</text>
+  <text x="1280" y="190" class="t"><tspan class="step">2</tspan>  setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, opt=1, sizeof(opt))</text>
+  <text x="1280" y="208" class="t"><tspan class="step">3</tspan>  struct sockaddr_in addr;</text>
+  <text x="1295" y="226" class="mono">sin_family = AF_INET;  sin_addr = INADDR_ANY (0.0.0.0);</text>
+  <text x="1295" y="244" class="mono">sin_port = htons(8080);  /* PORT in server.h */</text>
+  <text x="1280" y="262" class="t"><tspan class="step">4</tspan>  bind(server_fd, &amp;addr, sizeof(addr))  - if -1: perror, exit</text>
+  <text x="1280" y="280" class="t">     listen(server_fd, 10)  - ties to Accept queue (backlog = 10)</text>
+  <text x="1280" y="300" class="muted">Then: printf listening... enter while(1) { accept ... }</text>
+
+  <path class="dash" d="M 585 220 L 615 220"/>
+  <path class="dash" d="M 1210 310 L 1250 250"/>
+  <text x="940" y="405" class="muted" text-anchor="middle">Kernel moves completed connections into Accept queue; accept(server_fd, ...) dequeues.</text>
+
+  <rect x="55" y="480" class="card" width="420" height="450" rx="6"/>
+  <text x="70" y="505" class="h2">accept + client_fd</text>
+  <text x="70" y="528" class="mono">while (1) {</text>
+  <text x="85" y="548" class="t"><tspan class="step">7</tspan>  client_fd = accept(server_fd,</text>
+  <text x="100" y="566" class="mono">&amp;client_addr, &amp;client_len);</text>
+  <text x="85" y="588" class="t">if (client_fd == -1) { perror; continue; }</text>
+  <text x="85" y="610" class="t">printf(&quot;connection from %s\n&quot;,</text>
+  <text x="100" y="628" class="mono">inet_ntoa(client_addr.sin_addr));</text>
+  <text x="85" y="652" class="t"><tspan class="step">8</tspan>  memset(buf, 0, sizeof(buf));</text>
+  <text x="85" y="672" class="t">bytes = recv(client_fd, buf,</text>
+  <text x="100" y="690" class="mono">sizeof(buf) - 1, 0);</text>
+  <text x="85" y="710" class="muted">BUFFER_SIZE = 4096 (server.h)</text>
+  <text x="85" y="732" class="t">if (bytes &gt; 0) {</text>
+  <text x="100" y="752" class="t"><tspan class="step">9</tspan>  request_parse(buf, &amp;req)</text>
+  <text x="100" y="772" class="t">response_send(client_fd, ok ? &amp;req : NULL);</text>
+  <text x="85" y="792" class="t">}</text>
+  <text x="85" y="812" class="t"><tspan class="step">12</tspan> close(client_fd);  /* always, even if bytes &lt;= 0 */</text>
+  <text x="70" y="832" class="mono">}</text>
+  <text x="70" y="858" class="muted">server_fd is never closed in this loop (process runs until killed).</text>
+
+  <rect x="495" y="480" class="card" width="520" height="450" rx="6"/>
+  <text x="510" y="505" class="h2">request_parse (request.c)</text>
+  <text x="510" y="528" class="mono">sscanf(raw, &quot;%15s %255s %15s&quot;, method, path, version)</text>
+  <text x="510" y="548" class="t">Must be exactly 3 fields on first line; method must be GET.</text>
+  <text x="510" y="568" class="t">If path is &quot;/&quot; then rewrite to &quot;/index.html&quot;.</text>
+  <text x="510" y="588" class="t">On failure: server passes NULL to response_send (404 HTML).</text>
+  <line x1="510" y1="600" x2="1000" y2="600" stroke="#e2e8f0"/>
+  <text x="510" y="625" class="h2">response_send overview (response.c)</text>
+  <text x="510" y="648" class="t">if (req == NULL) then 404; if method != GET then 405 (unused when parse rejects non-GET)</text>
+  <text x="510" y="668" class="mono">filepath = WWW_DIR (&quot;www&quot;) + req-&gt;path</text>
+  <text x="510" y="688" class="t"><tspan class="step">10</tspan> stat(filepath) - on error: 404</text>
+  <text x="510" y="708" class="t">open(filepath, O_RDONLY) -&gt; file_fd; on error: 404</text>
+  <text x="510" y="728" class="t"><tspan class="step">11</tspan> Content-Type = mime_get(filepath); send 200 headers + Content-Length</text>
+  <text x="510" y="748" class="t">while (read(file_fd, chunk) &gt; 0) send(client_fd, chunk)</text>
+  <text x="510" y="768" class="t">close(file_fd)</text>
+  <text x="510" y="792" class="muted">Two FDs: client_fd (TCP) and file_fd (disk) - do not confuse them.</text>
+
+  <rect x="1035" y="480" class="card" width="810" height="450" rx="6"/>
+  <text x="1050" y="505" class="h2">FD legend + syscall map</text>
+  <rect x="1065" y="520" width="200" height="70" rx="4" fill="#dbeafe" stroke="#2563eb"/>
+  <text x="1075" y="542" class="t">Listening socket</text>
+  <text x="1075" y="560" class="mono">server_fd</text>
+  <text x="1075" y="578" class="t10">socket, setsockopt, bind, listen</text>
+  <rect x="1285" y="520" width="200" height="70" rx="4" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="1295" y="542" class="t">Connected socket</text>
+  <text x="1295" y="560" class="mono">client_fd</text>
+  <text x="1295" y="578" class="t10">accept, recv, send, close</text>
+  <rect x="1505" y="520" width="200" height="70" rx="4" fill="#ffedd5" stroke="#ea580c"/>
+  <text x="1515" y="542" class="t">Static file</text>
+  <text x="1515" y="560" class="mono">file_fd</text>
+  <text x="1515" y="578" class="t10">open, read, close</text>
+  <text x="1050" y="620" class="h2">Arrow key</text>
+  <line x1="1050" y1="635" x2="1120" y2="635" class="line"/>
+  <text x="1130" y="640" class="t10">syscalls / app control flow</text>
+  <line x1="1050" y1="658" x2="1120" y2="658" class="dash"/>
+  <text x="1130" y="663" class="t10">TCP / kernel placement (conceptual)</text>
+  <text x="1050" y="695" class="h2">Numbered request lifecycle (one connection)</text>
+  <text x="1050" y="718" class="mono">5-6  TCP handshake + enqueue to Accept queue (kernel)</text>
+  <text x="1050" y="738" class="mono">7    accept() -&gt; client_fd</text>
+  <text x="1050" y="758" class="mono">8    recv(client_fd) -&gt; buf[4096]</text>
+  <text x="1050" y="778" class="mono">9    request_parse -&gt; Request or NULL</text>
+  <text x="1050" y="798" class="mono">10-11 stat/open/read -&gt; send(client_fd) -&gt; close(file_fd)</text>
+  <text x="1050" y="818" class="mono">12   close(client_fd)  -  loop to next accept</text>
+  <text x="1050" y="845" class="muted">Connection: close in HTTP headers - one request per TCP connection in this server.</text>
+  <text x="1050" y="870" class="t">Responses: 200 + MIME from mime.c; 404 HTML; 405 branch exists but parse rejects non-GET first.</text>
+
+  <rect x="55" y="1020" class="card" width="900" height="310" rx="6"/>
+  <text x="70" y="1045" class="h2">Bytes on the wire vs buffers</text>
+  <text x="70" y="1070" class="t">browser_sockfd &lt;-&gt; kernel TCP &lt;-&gt; client_fd</text>
+  <text x="70" y="1090" class="mono">recv(client_fd, buf, sizeof(buf)-1, 0)  // first chunk only in this server</text>
+  <text x="70" y="1112" class="t">Application parses first line; ignores remaining headers for now.</text>
+  <text x="70" y="1135" class="t">response_send writes status + headers + body with send(client_fd, ...).</text>
+  <text x="70" y="1158" class="muted">File body is streamed in BUFFER_SIZE chunks from disk (same macro as recv buffer size).</text>
+  <text x="70" y="1185" class="h2">Document root</text>
+  <text x="70" y="1208" class="mono">WWW_DIR = &quot;www&quot;  // server.h - paths should stay under this dir in a hardened server</text>
+  <text x="70" y="1230" class="muted">This build does not normalize &quot;..&quot;; treat as learning code only.</text>
+
+  <rect x="975" y="1020" class="card" width="870" height="310" rx="6"/>
+  <text x="990" y="1045" class="h2">mime_get (mime.c) - after file path is known</text>
+  <text x="990" y="1068" class="t">Extension after last dot in path - Content-Type (html, css, js, png, ...).</text>
+  <text x="990" y="1090" class="t">Unknown / no dot - application/octet-stream.</text>
+  <line x1="990" y1="1105" x2="1830" y2="1105" stroke="#e2e8f0"/>
+  <text x="990" y="1130" class="h2">Quick syscall checklist (copy for debugging)</text>
+  <text x="990" y="1153" class="mono">socket bind listen  -&gt;  server_fd</text>
+  <text x="990" y="1173" class="mono">accept recv send close  -&gt;  client_fd</text>
+  <text x="990" y="1193" class="mono">stat open read close  -&gt;  file_fd (per request, inside response_send)</text>
+  <text x="990" y="1220" class="muted">yugserver: single-threaded, blocking - one client fully served before next accept returns.</text>
+
+  <text x="50" y="1505" class="muted">Open this .svg in a browser or embed in README. Numbers 1-12 match section D.</text>
+</svg>

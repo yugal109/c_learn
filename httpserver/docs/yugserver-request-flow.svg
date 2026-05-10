@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1380 1780" width="1380" height="1780" role="img" aria-labelledby="ft fd">
+  <title id="ft">yugserver control-flow diagram</title>
+  <desc id="fd">Flowchart of create_server_socket, accept loop, request_parse, and response_send decision paths.</desc>
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#0f172a"/>
+    </marker>
+    <style type="text/css"><![CDATA[
+      .title { font: 700 20px ui-sans-serif, system-ui, sans-serif; fill: #0f172a; }
+      .subtitle { font: 12px ui-sans-serif, system-ui, sans-serif; fill: #475569; }
+      .lbl { font: 11px ui-sans-serif, system-ui, sans-serif; fill: #334155; }
+      .mono { font: 11px ui-monospace, Menlo, Consolas, monospace; fill: #0f172a; }
+      .small { font: 10px ui-sans-serif, system-ui, sans-serif; fill: #64748b; }
+      .proc { fill: #e0f2fe; stroke: #0369a1; stroke-width: 1.6; }
+      .dec { fill: #fef9c3; stroke: #a16207; stroke-width: 1.6; }
+      .term { fill: #fee2e2; stroke: #b91c1c; stroke-width: 1.6; }
+      .io { fill: #dcfce7; stroke: #15803d; stroke-width: 1.6; }
+      .sub { fill: #f1f5f9; stroke: #64748b; stroke-width: 1.2; stroke-dasharray: 6 4; }
+      .edge { stroke: #1e293b; stroke-width: 1.4; fill: none; marker-end: url(#arr); }
+      .edgeSoft { stroke: #64748b; stroke-width: 1.2; fill: none; marker-end: url(#arr); }
+    ]]></style>
+  </defs>
+
+  <text x="40" y="36" class="title">yugserver - control flow (flowchart)</text>
+  <text x="40" y="58" class="subtitle">Process boxes, diamonds = decisions, red = exit. Companion to yugserver-sockets-stack.svg</text>
+
+  <!-- ========== STARTUP (server.c create_server_socket + server_start header) ========== -->
+  <text x="40" y="92" class="lbl">Startup</text>
+  <ellipse cx="120" cy="118" rx="56" ry="26" class="proc"/>
+  <text x="78" y="122" class="mono">Start</text>
+
+  <rect x="210" y="96" width="150" height="44" rx="10" class="proc"/>
+  <text x="222" y="114" class="mono">socket(AF_INET,</text>
+  <text x="222" y="128" class="mono">SOCK_STREAM, 0)</text>
+
+  <polygon points="420,80 470,118 420,156 370,118" class="dec"/>
+  <text x="395" y="115" class="mono">fd == -1 ?</text>
+
+  <rect x="520" y="96" width="130" height="44" rx="10" class="term"/>
+  <text x="538" y="122" class="mono">perror; exit(1)</text>
+
+  <rect x="210" y="176" width="170" height="40" rx="10" class="proc"/>
+  <text x="222" y="200" class="mono">setsockopt(SO_REUSEADDR)</text>
+
+  <rect x="210" y="238" width="100" height="40" rx="10" class="proc"/>
+  <text x="228" y="262" class="mono">bind(...)</text>
+
+  <polygon points="360,222 410,258 360,294 310,258" class="dec"/>
+  <text x="335" y="255" class="mono">-1 ?</text>
+
+  <rect x="450" y="236" width="130" height="44" rx="10" class="term"/>
+  <text x="468" y="262" class="mono">perror; exit(1)</text>
+
+  <rect x="210" y="318" width="110" height="40" rx="10" class="proc"/>
+  <text x="232" y="342" class="mono">listen(10)</text>
+
+  <polygon points="360,302 410,338 360,374 310,338" class="dec"/>
+  <text x="335" y="335" class="mono">-1 ?</text>
+
+  <rect x="450" y="316" width="130" height="44" rx="10" class="term"/>
+  <text x="468" y="342" class="mono">perror; exit(1)</text>
+
+  <rect x="210" y="388" width="200" height="44" rx="10" class="io"/>
+  <text x="222" y="412" class="mono">printf(listening :8080)</text>
+
+  <rect x="210" y="452" width="140" height="40" rx="10" class="proc"/>
+  <text x="238" y="476" class="mono">while (1)</text>
+
+  <!-- edges startup: fd/bind/listen == -1 means error (Y -> exit) -->
+  <path class="edge" d="M 176 118 L 210 118"/>
+  <path class="edge" d="M 360 118 L 370 118"/>
+  <path class="edge" d="M 470 118 L 520 118"/>
+  <text x="488" y="108" class="small">Y err</text>
+  <path class="edge" d="M 420 156 L 420 176 L 295 176"/>
+  <text x="428" y="170" class="small">N ok</text>
+
+  <path class="edge" d="M 295 216 L 295 232 L 260 232 L 260 238"/>
+  <path class="edge" d="M 260 278 L 260 258 L 310 258"/>
+  <path class="edge" d="M 410 258 L 450 258"/>
+  <text x="418" y="248" class="small">Y err</text>
+  <path class="edge" d="M 360 294 L 360 310 L 265 310 L 265 318"/>
+  <text x="368" y="308" class="small">N ok</text>
+
+  <path class="edge" d="M 320 338 L 310 338"/>
+  <path class="edge" d="M 410 338 L 450 338"/>
+  <text x="418" y="328" class="small">Y err</text>
+  <path class="edge" d="M 360 374 L 310 374 L 310 388"/>
+  <text x="368" y="366" class="small">N ok</text>
+
+  <path class="edge" d="M 310 432 L 280 432 L 280 452"/>
+
+  <!-- ========== MAIN LOOP body ========== -->
+  <text x="40" y="528" class="lbl">Per connection (server.c loop body)</text>
+
+  <rect x="210" y="540" width="120" height="40" rx="10" class="io"/>
+  <text x="232" y="564" class="mono">accept()</text>
+
+  <polygon points="400,524 450,560 400,596 350,560" class="dec"/>
+  <text x="375" y="557" class="mono">-1 ?</text>
+
+  <rect x="500" y="538" width="150" height="44" rx="10" class="proc"/>
+  <text x="518" y="556" class="mono">perror;</text>
+  <text x="518" y="570" class="mono">continue</text>
+
+  <rect x="210" y="612" width="200" height="48" rx="10" class="proc"/>
+  <text x="222" y="632" class="mono">printf(peer); memset(buf);</text>
+  <text x="222" y="648" class="mono">recv(client_fd, buf,...)</text>
+
+  <polygon points="470,688 520,724 470,760 420,724" class="dec"/>
+  <text x="445" y="721" class="mono">bytes &gt; 0 ?</text>
+
+  <rect x="210" y="788" width="170" height="44" rx="10" class="proc"/>
+  <text x="222" y="806" class="mono">printf(request);</text>
+  <text x="222" y="820" class="mono">request_parse(buf,&amp;req)</text>
+
+  <polygon points="430,772 480,808 430,844 380,808" class="dec"/>
+  <text x="405" y="805" class="mono">ok ?</text>
+
+  <rect x="520" y="780" width="200" height="60" rx="10" class="io"/>
+  <text x="532" y="802" class="mono">response_send(</text>
+  <text x="532" y="818" class="mono">client_fd, &amp;req)</text>
+  <text x="532" y="832" class="small">parse == 0</text>
+
+  <rect x="520" y="858" width="200" height="60" rx="10" class="io"/>
+  <text x="532" y="880" class="mono">response_send(</text>
+  <text x="532" y="896" class="mono">client_fd, NULL)</text>
+  <text x="532" y="910" class="small">parse failed</text>
+
+  <rect x="210" y="948" width="150" height="44" rx="10" class="proc"/>
+  <text x="252" y="974" class="mono">close(client_fd)</text>
+
+  <!-- loop edges -->
+  <path class="edge" d="M 280 492 L 280 540"/>
+  <path class="edge" d="M 330 560 L 350 560"/>
+  <path class="edge" d="M 450 560 L 500 560"/>
+  <text x="455" y="552" class="small">Y err</text>
+  <path class="edgeSoft" d="M 575 538 Q 620 480 280 520 L 280 540"/>
+  <text x="625" y="475" class="small">continue</text>
+
+  <path class="edge" d="M 400 596 L 310 596 L 310 612"/>
+  <text x="318" y="588" class="small">N ok</text>
+
+  <path class="edge" d="M 310 660 L 310 680 L 420 680 L 420 688"/>
+  <path class="edge" d="M 470 760 L 295 760 L 295 788"/>
+  <text x="360" y="752" class="small">Y</text>
+  <path class="edge" d="M 420 724 L 200 724 L 200 970 L 285 970"/>
+  <text x="208" y="718" class="small">N</text>
+
+  <path class="edge" d="M 430 844 L 620 888"/>
+  <text x="480" y="838" class="small">N</text>
+  <path class="edge" d="M 480 808 L 520 808"/>
+  <text x="488" y="800" class="small">Y</text>
+
+  <path class="edge" d="M 620 840 L 620 948"/>
+  <path class="edge" d="M 520 888 L 500 888 L 500 970 L 285 970"/>
+  <path class="edgeSoft" d="M 285 992 L 285 520 L 280 520 L 280 540"/>
+  <text x="292" y="512" class="small">next accept</text>
+
+  <!-- ========== response_send subgraph ========== -->
+  <rect x="760" y="500" width="580" height="520" rx="12" class="sub"/>
+  <text x="780" y="528" class="lbl">response_send (response.c) - detail</text>
+
+  <rect x="800" y="548" width="120" height="36" rx="8" class="io"/>
+  <text x="838" y="570" class="mono" text-anchor="middle">enter</text>
+
+  <polygon points="980,532 1030,566 980,600 930,566" class="dec"/>
+  <text x="955" y="563" class="mono">req == NULL ?</text>
+
+  <rect x="1080" y="544" width="110" height="44" rx="10" class="proc"/>
+  <text x="1100" y="570" class="mono">send_404</text>
+
+  <polygon points="980,628 1030,662 980,696 930,662" class="dec"/>
+  <text x="935" y="659" class="mono">method != GET ?</text>
+
+  <rect x="1080" y="640" width="110" height="44" rx="10" class="proc"/>
+  <text x="1095" y="666" class="mono">send_405</text>
+
+  <rect x="800" y="720" width="200" height="40" rx="10" class="proc"/>
+  <text x="812" y="744" class="mono">filepath = WWW_DIR + path</text>
+
+  <polygon points="1080,704 1130,740 1080,776 1030,740" class="dec"/>
+  <text x="1055" y="737" class="mono">stat -1 ?</text>
+
+  <rect x="1160" y="718" width="110" height="44" rx="10" class="proc"/>
+  <text x="1180" y="744" class="mono">send_404</text>
+
+  <polygon points="980,804 1030,838 980,872 930,838" class="dec"/>
+  <text x="955" y="835" class="mono">open -1 ?</text>
+
+  <rect x="1080" y="810" width="110" height="44" rx="10" class="proc"/>
+  <text x="1100" y="836" class="mono">send_404</text>
+
+  <rect x="800" y="892" width="220" height="44" rx="10" class="io"/>
+  <text x="812" y="910" class="mono">mime_get; send 200 headers</text>
+  <text x="812" y="924" class="mono">+ Content-Length</text>
+
+  <rect x="800" y="952" width="240" height="44" rx="10" class="proc"/>
+  <text x="812" y="976" class="mono">while read(file_fd) &gt; 0</text>
+
+  <rect x="1080" y="952" width="140" height="44" rx="10" class="io"/>
+  <text x="1095" y="978" class="mono">send(client_fd)</text>
+
+  <rect x="800" y="1012" width="140" height="40" rx="10" class="proc"/>
+  <text x="838" y="1036" class="mono" text-anchor="middle">close(file_fd)</text>
+
+  <rect x="800" y="1072" width="120" height="36" rx="8" class="proc"/>
+  <text x="860" y="1094" class="mono" text-anchor="middle">return</text>
+
+  <!-- response edges -->
+  <path class="edge" d="M 920 566 L 930 566"/>
+  <path class="edge" d="M 1030 566 L 1080 566"/>
+  <text x="1040" y="558" class="small">Y</text>
+  <path class="edge" d="M 980 600 L 980 628"/>
+  <text x="988" y="618" class="small">N</text>
+
+  <path class="edge" d="M 1030 662 L 1080 662"/>
+  <text x="1040" y="654" class="small">Y</text>
+  <path class="edge" d="M 980 696 L 900 696 L 900 720"/>
+  <text x="988" y="688" class="small">N</text>
+
+  <path class="edge" d="M 1000 760 L 1030 740"/>
+  <path class="edge" d="M 1130 740 L 1160 740"/>
+  <text x="1140" y="732" class="small">Y err</text>
+  <path class="edge" d="M 1080 776 L 980 776 L 980 804"/>
+  <text x="1020" y="770" class="small">N ok</text>
+
+  <path class="edge" d="M 1000 838 L 980 838"/>
+  <path class="edge" d="M 1030 838 L 1080 838"/>
+  <text x="1040" y="830" class="small">Y err</text>
+  <path class="edge" d="M 980 872 L 910 872 L 910 892"/>
+  <text x="932" y="864" class="small">N ok</text>
+
+  <path class="edge" d="M 910 936 L 910 952"/>
+  <path class="edge" d="M 1040 974 L 1080 974"/>
+  <path class="edge" d="M 1220 974 L 1240 974 L 1240 914 L 1160 914"/>
+  <path class="edgeSoft" d="M 1165 740 L 1240 740 L 1240 566 L 1190 566"/>
+  <text x="1210" y="556" class="small">return</text>
+
+  <path class="edge" d="M 910 996 L 910 1012"/>
+  <path class="edge" d="M 910 1052 L 910 1072"/>
+  <path class="edgeSoft" d="M 860 1108 L 860 1140 L 620 1140 L 620 948"/>
+
+  <!-- dashed call from main to subgraph -->
+  <path class="edgeSoft" stroke-dasharray="8 5" d="M 720 810 L 760 810"/>
+  <text x="728" y="802" class="small">calls</text>
+  <path class="edgeSoft" stroke-dasharray="8 5" d="M 720 888 L 740 888 L 740 566 L 800 566"/>
+
+  <!-- Legend -->
+  <rect x="40" y="1140" width="700" height="200" rx="10" fill="#f8fafc" stroke="#94a3b8"/>
+  <text x="56" y="1170" class="lbl">Legend</text>
+  <rect x="56" y="1185" width="28" height="18" rx="4" class="proc"/>
+  <text x="92" y="1198" class="small">syscall / step</text>
+  <polygon points="200,1176 230,1194 200,1212 170,1194" class="dec"/>
+  <text x="240" y="1198" class="small">decision (branch)</text>
+  <rect x="56" y="1225" width="28" height="18" rx="4" class="io"/>
+  <text x="92" y="1238" class="small">I/O (network or headers/body)</text>
+  <rect x="56" y="1255" width="28" height="18" rx="4" class="term"/>
+  <text x="92" y="1268" class="small">process exit</text>
+  <text x="56" y="1305" class="small">Gray dashed = loop back. Dashed frame = response_send expanded. 405 path exists but is unused when parse rejects non-GET (NULL path sends 404 first).</text>
+
+  <text x="40" y="1385" class="subtitle">File: docs/yugserver-request-flow.svg - open in browser to zoom</text>
+</svg>
